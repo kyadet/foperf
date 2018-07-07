@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bufio"
-	"os"
+	//"bufio"
+	//"os"
 	"strconv"
 	"strings"
 	"log"
@@ -16,6 +16,7 @@ type client struct {
     Filter string
     Id int
     Seq int
+    Seqgap []int
     Msg string
     Deal *goczmq.Sock
     Sub *goczmq.Sock 
@@ -59,6 +60,7 @@ func main() {
 		cli := client{}
 		cli.Id = i
 		cli.Seq = 0
+		cli.Seqgap = []int{}
 		// size ... 720 * 4 bytes
 		cli.Msg = "abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789"
 		cli.Filter = "0"
@@ -67,10 +69,10 @@ func main() {
         	time.Sleep(time.Duration(wakeIntval) * time.Millisecond)
 	}
 	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print(">")
-		text, _ := reader.ReadString('\n')
-		Command(text)
+		//reader := bufio.NewReader(os.Stdin)
+		//fmt.Print(">")
+		//text, _ := reader.ReadString('\n')
+		//Command(text)
         	time.Sleep(0 * time.Second)
 	}
 }
@@ -140,15 +142,29 @@ func Recv(cli *client){
 			log.Printf("-> %s", string(reply[0]))
 		} else {
 			res := strings.Split(string(reply[0]), ",")
-			if strconv.Itoa(cli.Id) == res[1] {
-				if strconv.Itoa(cli.Seq) == res[2] {
-					//log.Printf("ok id:%d==%s seq:%d==%s",cli.Id,res[1],cli.Seq,res[2])
+			id := strconv.Itoa(cli.Id)
+			seq := strconv.Itoa(cli.Seq)
+			if id == res[1] {
+				if seq == res[2] {
+					//log.Printf("ok id:%d==%s seq:%s==%s",cli.Id,res[1],seq,res[2])
 				} else {
-					log.Printf("> self seq lost id:%s seq:%s", res[1], res[2])
+					list := []int{}
+					exists := false
+					for losts := range cli.Seqgap {
+						if losts != cli.Seq {
+							list = append(list, losts)
+						} else {
+							exists = true
+						}
+					}
+					if exists { list = append(list, cli.Seq) }
+					cli.Seqgap = list
+					//log.Printf("> self seq lost id:%s seq:%s", res[1], res[2])
+					log.Printf("> delay count :%d", len(list))
 				}
 			} else {
-				if strconv.Itoa(cli.Seq) == res[2] {
-					//log.Printf("ok other seq:%d==%s",cli.Seq,res[2])
+				if seq == res[2] {
+					//log.Printf("ok other seq:%s==%s",seq,res[2])
 				} else {
 					//log.Printf("> other seq lost id:%s seq:%s", res[1], res[2])
 				}

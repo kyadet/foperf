@@ -5,6 +5,8 @@ import (
 	"time"
 	"flag"
 	"github.com/zeromq/goczmq"
+	"strings"
+	"strconv"
 )
 
 var (
@@ -13,6 +15,7 @@ var (
     destSubSchema string
     destSubPort string
     logLevel int
+    subFilter int
 )
 func param() {
     flag.StringVar(&destDealSchema, "dschm","tcp://", "destination dealer schema tcp or udp")
@@ -20,6 +23,7 @@ func param() {
     flag.StringVar(&destSubSchema, "sschm","tcp://", "destination subscribe schema tcp or udp")
     flag.StringVar(&destSubPort, "sport",":7000", "destination subscribe port")
     flag.IntVar(&logLevel, "log",0 ,"loglevel ... 0=lostonly, 1=verbose")
+    flag.IntVar(&subFilter, "subfilter",0 ,"subscribe filter 0,1=nofilter, 2= 1/2, 3= 1/3")
     flag.Parse()
 }
 
@@ -36,7 +40,6 @@ func main() {
                 log.Fatal(err)
         }
         defer pub.Destroy()
-
     for {
 	request, err := router.RecvMessage()
 	if err != nil {
@@ -46,8 +49,14 @@ func main() {
 	if logLevel > 0 { 
 		log.Printf("-> %s", request[1])
 	}
-
-	err = pub.SendFrame([]byte("0,"+string(request[1])), goczmq.FlagNone)
+	
+	sendCh := "0"
+	if subFilter > 0 {
+		cidStr := strings.Split(string(request[1]), ",")
+		cid,_ := strconv.Atoi(cidStr[0])
+		sendCh = strconv.Itoa(cid % subFilter)
+	}
+	err = pub.SendFrame([]byte(sendCh+","+string(request[1])), goczmq.FlagNone)
         if err != nil {
                 log.Fatal(err)
         }

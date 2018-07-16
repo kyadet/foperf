@@ -128,7 +128,8 @@ func Send(cli *client){
 func Recv(cli *client){
 	var err error
 	cli.Sub, err = goczmq.NewSub(destSubSchema+destAddr+destSubPort,cli.Filter)
-	cli.Sub.SetSubscribe(cli.Filter)
+	cli.Sub.SetSubscribe("0")
+	cli.Sub.SetSubscribe("1")
 	if err != nil {
 		log.Fatal(err)
 	}

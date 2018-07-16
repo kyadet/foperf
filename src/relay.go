@@ -23,7 +23,7 @@ func param() {
     flag.StringVar(&destSubSchema, "sschm","tcp://", "destination subscribe schema tcp or udp")
     flag.StringVar(&destSubPort, "sport",":7000", "destination subscribe port")
     flag.IntVar(&logLevel, "log",0 ,"loglevel ... 0=lostonly, 1=verbose")
-    flag.IntVar(&subFilter, "subfilter",0 ,"subscribe filter 0,1=nofilter, 2= 1/2, 3= 1/3")
+    flag.IntVar(&subFilter, "subfilter",0 ,"subscribe filter 0=nofilter")
     flag.Parse()
 }
 
@@ -54,7 +54,7 @@ func main() {
 	if subFilter > 0 {
 		cidStr := strings.Split(string(request[1]), ",")
 		cid,_ := strconv.Atoi(cidStr[0])
-		sendCh = strconv.Itoa(cid % subFilter)
+		sendCh = strconv.Itoa(cid % 2)
 	}
 	err = pub.SendFrame([]byte(sendCh+","+string(request[1])), goczmq.FlagNone)
         if err != nil {

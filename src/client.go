@@ -2,7 +2,7 @@ package main
 
 import (
 	//"bufio"
-	//"os"
+	"os"
 	"flag"
 	"fmt"
 	"github.com/zeromq/goczmq"
@@ -38,6 +38,8 @@ var (
 	logLevel       int
 	fanoutRatio    int
 	subFilter      int
+	errorThreshold int
+	checkTimer     int
 )
 
 func param() {
@@ -52,6 +54,8 @@ func param() {
 	flag.IntVar(&logLevel, "log", 0, "loglevel ... 0=lostonly, 1=verbose")
 	flag.IntVar(&fanoutRatio, "ratio", 0, "set fanout ratio, 0 is generic test start")
 	flag.IntVar(&subFilter, "subfilter", 0, "subscribe filter 0 is nofilter")
+	flag.IntVar(&errorThreshold, "errorThreshold", 0, "error Threshold counter")
+	flag.IntVar(&checkTimer, "checkTimer", 30, "check Timer")
 	flag.Parse()
 }
 
@@ -74,13 +78,8 @@ func main() {
 		go Recv(&cli)
 		time.Sleep(time.Duration(wakeIntval) * time.Millisecond)
 	}
-	for {
-		//reader := bufio.NewReader(os.Stdin)
-		//fmt.Print(">")
-		//text, _ := reader.ReadString('\n')
-		//Command(text)
-		time.Sleep(0 * time.Second)
-	}
+	time.Sleep(time.Duration(checkTimer) * time.Second)
+	os.Exit(0)
 }
 
 func Command(text string) {
@@ -160,20 +159,26 @@ func Recv(cli *client) {
 					//log.Printf("ok id:%d==%s seq:%s==%s",cli.Id,res[1],seq,res[2])
 				} else {
 					list := []int{}
-					exists := false
+					recover := false
 					for losts := range cli.Seqgap {
-						if losts != cli.Seq {
-							list = append(list, losts)
+						if losts == cli.Seq {
+							recover = true
 						} else {
-							exists = true
+							list = append(list, losts)
 						}
 					}
-					if exists {
+					// new gap
+					if ! recover {
 						list = append(list, cli.Seq)
 					}
 					cli.Seqgap = list
-					//log.Printf("> self seq lost id:%s seq:%s", res[1], res[2])
-					log.Printf("> delay count :%d", len(list))
+					if len(list) > 0 {
+						log.Printf("> delay count :%d", len(list))
+						log.Printf("> self seq lost id:%s seq:%s", seq, res[2])
+						if len(list) > errorThreshold {
+							os.Exit(1)
+						}
+					}
 				}
 			} else {
 				if seq == res[2] {

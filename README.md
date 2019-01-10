@@ -2,7 +2,8 @@
 Fan-Out performance checking tool
 
 # setup for linux
-yum install golang gcc gcc-devel gcc-c++ libtool automake autoconf git pkgconfig libunwind libunwind-devel
+yum install epel-release
+yum install golang gcc gcc-c++ libtool automake autoconf git pkgconfig libunwind libunwind-devel
 
 git clone git://github.com/jedisct1/libsodium.git
 

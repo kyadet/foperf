@@ -19,12 +19,13 @@ OUTPUT="${OUTPUT}Fan-out"`printf "% 4d " $i`
 for j in `seq 100 100 ${intval_max}`
 do
 echo interval:${j} fanout:${i}
-./bin/client -addr ${target_addr} -wake ${i} -recvint ${j} -wakeint 200 -sport :7000 -dport :7001 -errorThreshold 0 -checkTimer 60
-if [ "x$?" = "x0" ];then
-OUTPUT="${OUTPUT}   o  "
-else
-OUTPUT="${OUTPUT}   x  "
-fi
+./bin/client -addr ${target_addr} -wake ${i} -recvint ${j} -wakeint 200 -sport :7000 -dport :7001 -errorThreshold 6 -checkTimer 60
+OUTPUT="${OUTPUT}  `printf '%02d' $?` "
+#if [ "x$?" = "x0" ];then
+#OUTPUT="${OUTPUT}   o  "
+#else
+#OUTPUT="${OUTPUT}   x  "
+#fi
 done
 OUTPUT="${OUTPUT}
 "

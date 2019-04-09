@@ -2,11 +2,11 @@ package main
 
 import (
 	//"bufio"
-	"os"
 	"flag"
 	"fmt"
 	"github.com/zeromq/goczmq"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +27,7 @@ var msgSize = 740
 var interval = 500
 
 var (
+	startId        int
 	wakeIntval     int
 	recvIntval     int
 	destAddr       string
@@ -40,9 +41,11 @@ var (
 	subFilter      int
 	errorThreshold int
 	checkTimer     int
+	dropMode       int
 )
 
 func param() {
+	flag.IntVar(&startId, "startid", 0, "id start num")
 	flag.IntVar(&wakeIntval, "wakeint", 1000, "wake client interval (milliseconds)")
 	flag.IntVar(&recvIntval, "recvint", 500, "receive message interval (milliseconds)")
 	flag.StringVar(&destAddr, "addr", "127.0.0.1", "destination address")
@@ -56,13 +59,14 @@ func param() {
 	flag.IntVar(&subFilter, "subfilter", 0, "subscribe filter 0 is nofilter")
 	flag.IntVar(&errorThreshold, "errorThreshold", 0, "error Threshold counter")
 	flag.IntVar(&checkTimer, "checkTimer", 30, "check Timer")
+	flag.IntVar(&dropMode, "dropMode", 0, "dropg packet, no check sequence")
 	flag.Parse()
 }
 
 func main() {
 	param()
 	interval = recvIntval
-	for i := 0; i < wakeCount; i++ {
+	for i := startId; i < startId+wakeCount; i++ {
 		cli := client{}
 		cli.Id = i
 		cli.Seq = 0
@@ -144,47 +148,51 @@ func Recv(cli *client) {
 	}
 	defer cli.Sub.Destroy()
 	for {
-		reply, err := cli.Sub.RecvMessage()
-		if err != nil {
-			log.Fatal(err)
-		}
-		if logLevel > 0 {
-			log.Printf("-> %s", string(reply[0]))
+		if dropMode == 1 {
+			cli.Sub.RecvMessage()
 		} else {
-			res := strings.Split(string(reply[0]), ",")
-			id := strconv.Itoa(cli.Id)
-			seq := strconv.Itoa(cli.Seq)
-			if id == res[1] {
-				if seq == res[2] {
-					//log.Printf("ok id:%d==%s seq:%s==%s",cli.Id,res[1],seq,res[2])
-				} else {
-					list := []int{}
-					recover := false
-					for losts := range cli.Seqgap {
-						if losts == cli.Seq {
-							recover = true
-						} else {
-							list = append(list, losts)
-						}
-					}
-					// new gap
-					if ! recover {
-						list = append(list, cli.Seq)
-					}
-					cli.Seqgap = list
-					if len(list) > 0 {
-						log.Printf("> delay count :%d", len(list))
-						log.Printf("> self seq lost id:%s seq:%s", seq, res[2])
-						if len(list) > errorThreshold {
-							os.Exit(1)
-						}
-					}
-				}
+			reply, err := cli.Sub.RecvMessage()
+			if err != nil {
+				log.Fatal(err)
+			}
+			if logLevel > 0 {
+				log.Printf("-> %s", string(reply[0]))
 			} else {
-				if seq == res[2] {
-					//log.Printf("ok other seq:%s==%s",seq,res[2])
+				res := strings.Split(string(reply[0]), ",")
+				id := strconv.Itoa(cli.Id)
+				seq := strconv.Itoa(cli.Seq)
+				if id == res[1] {
+					if seq == res[2] {
+						//log.Printf("ok id:%d==%s seq:%s==%s",cli.Id,res[1],seq,res[2])
+					} else {
+						list := []int{}
+						recover := false
+						for losts := range cli.Seqgap {
+							if losts == cli.Seq {
+								recover = true
+							} else {
+								list = append(list, losts)
+							}
+						}
+						// new gap
+						if !recover {
+							list = append(list, cli.Seq)
+						}
+						cli.Seqgap = list
+						if len(list) > 0 {
+							log.Printf("> delay count :%d", len(list))
+							log.Printf("> self seq lost id:%s seq:%s", seq, res[2])
+							if len(list) > errorThreshold {
+								os.Exit(len(list))
+							}
+						}
+					}
 				} else {
-					//log.Printf("> other seq lost id:%s seq:%s", res[1], res[2])
+					if seq == res[2] {
+						//log.Printf("ok other seq:%s==%s",seq,res[2])
+					} else {
+						//log.Printf("> other seq lost id:%s seq:%s", res[1], res[2])
+					}
 				}
 			}
 		}

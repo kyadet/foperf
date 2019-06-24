@@ -1,0 +1,39 @@
+# drop or seqchk
+type=drop
+
+start_fanout=300
+fanout_max=1200
+intval_max=200
+timermax=60
+add_step=10
+
+target_addr=10.0.0.1
+load1='
+10.0.2.1
+'
+load2='
+10.0.2.21
+'
+load3='
+'
+load4='
+'
+load1_ratio=3
+load2_ratio=1
+load3_ratio=0
+load4_ratio=0
+
+sport=7000
+dport=7001
+error_threshold=6
+check_timer=67
+
+total_ratio=$(($load1_ratio + $load2_ratio + $load3_ratio + $load4_ratio))
+load1_count=`echo $load1 | wc -w`
+load2_count=`echo $load2 | wc -w`
+load3_count=`echo $load3 | wc -w`
+load4_count=`echo $load4 | wc -w`
+total_count=$(($load1_ratio * $load1_count + $load2_ratio * $load2_count + $load3_ratio * $load3_count + $load4_ratio * load4_count))
+
+echo $total_ratio
+echo $total_count
